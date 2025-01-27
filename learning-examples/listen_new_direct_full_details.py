@@ -1,8 +1,8 @@
 import asyncio
 import json
 import websockets
-import base58
-import base64
+import base58  # For Solana public key encoding
+import base64  # For encoding credentials
 import struct
 import sys
 import os
@@ -10,10 +10,12 @@ from solders.pubkey import Pubkey
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from config import (
-    WSS_ENDPOINT, 
+    WSS_ENDPOINT,
     PUMP_PROGRAM,
     SYSTEM_TOKEN_PROGRAM as TOKEN_PROGRAM_ID,
-    SYSTEM_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM as ATA_PROGRAM_ID
+    SYSTEM_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM as ATA_PROGRAM_ID,
+    USERNAME,
+    PASSWORD
 )
 
 def find_associated_bonding_curve(mint: Pubkey, bonding_curve: Pubkey) -> Pubkey:
@@ -32,7 +34,7 @@ def find_associated_bonding_curve(mint: Pubkey, bonding_curve: Pubkey) -> Pubkey
     return derived_address
 
 # Load the IDL JSON file
-with open('../idl/pump_fun_idl.json', 'r') as f:
+with open('C:/Users/pelae/OneDrive/Desktop/dev/dexscreener/pump-fun-bot/idl/pump_fun_idl.json', 'r') as f:
     idl = json.load(f)
 
 # Extract the "create" instruction definition
@@ -83,9 +85,17 @@ def print_transaction_details(log_data):
                 pass
 
 async def listen_for_new_tokens():
+    # Generate Base64-encoded credentials for Basic Authentication
+    credentials = f"{USERNAME}:{PASSWORD}"
+    encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+
     while True:
         try:
-            async with websockets.connect(WSS_ENDPOINT) as websocket:
+            # Add the Authorization header for WebSocket connection
+            async with websockets.connect(
+                WSS_ENDPOINT,
+                extra_headers={"Authorization": f"Basic {encoded_credentials}"}
+            ) as websocket:
                 subscription_message = json.dumps({
                     "jsonrpc": "2.0",
                     "id": 1,

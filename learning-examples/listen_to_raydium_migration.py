@@ -7,7 +7,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from config import WSS_ENDPOINT, PUMP_LIQUIDITY_MIGRATOR
+from config import WSS_ENDPOINT, PUMP_LIQUIDITY_MIGRATOR, USERNAME, PASSWORD
 
 def process_initialize2_transaction(data):
     """Process and decode an initialize2 transaction"""
@@ -33,9 +33,17 @@ def process_initialize2_transaction(data):
         print(f"\nError: {str(e)}")
 
 async def listen_for_events():
+    # Generate Base64-encoded credentials for Basic Authentication
+    credentials = f"{USERNAME}:{PASSWORD}"
+    encoded_credentials = base64.b64encode(credentials.encode("utf-8")).decode("utf-8")
+
     while True:
         try:
-            async with websockets.connect(WSS_ENDPOINT) as websocket:
+            # Add the Authorization header for WebSocket connection
+            async with websockets.connect(
+                WSS_ENDPOINT,
+                extra_headers={"Authorization": f"Basic {encoded_credentials}"}
+            ) as websocket:
                 subscription_message = json.dumps({
                     "jsonrpc": "2.0",
                     "id": 1,
@@ -79,8 +87,7 @@ async def listen_for_events():
                                                     break
                                         
                     except asyncio.TimeoutError:
-                        print("\nChecking connection...")
-                        print("Connection alive")
+                        print("\nChecking connection... Connection alive")
                         continue
                         
         except Exception as e:
